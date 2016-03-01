@@ -1,0 +1,21 @@
+useDynLib(FREGAT)
+
+import(Matrix)
+import(splines)
+import(parallel)
+
+importFrom("methods", "as", "is")
+importFrom("stats", "anova", "as.formula", "dbeta", "dchisq", "glm",
+             "integrate", "kernel", "knots", "model.frame",
+             "model.matrix", "nlminb", "optim", "optimize", "pchisq",
+             "pnorm", "qchisq", "uniroot", "var", "weights")
+importFrom("utils", "capture.output", "read.table")
+
+export(FFBSKAT)
+export(famBT)
+export(famFLM)
+export(MLR)
+export(single.point)
+export(read.plink)
+export(null)
+
