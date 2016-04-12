@@ -37,7 +37,9 @@ check.geno <- function(genodata, regions, n, ...) {
 				if (class(geneFile) == 'character' & length(geneFile) == 1) stopifnot(local.file.exists(geneFile))
 				if (is.null(regions)) stop("'regions' should be specified to use VCF file as input")
 			}
-			invisible(capture.output(vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2], type = 'output'))
+			if (getRversion() >= "3.2.0") {
+				invisible(capture.output(vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2], type = 'output'))
+			} else { vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2] }
 			if (vcfn != n) stop("Dimensions of 'phenodata' and 'genodata' do not match")
 			annoType <- ifelse('annoType' %in% names(match.call()), eval(match.call()$annoType), '')
 			return(list(gtype = 3, geneFile = geneFile, annoType = annoType))

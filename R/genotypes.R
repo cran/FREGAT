@@ -10,8 +10,9 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 		Z <- subset.SnpMatrix(Z, measured.ids)
 		Z <- SnpMatrix2numeric(Z)
 	} else if (gtype == 3) {
-#browser()
-		invisible(capture.output(invisible(capture.output(Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, reg, annoType), type = 'output')), type = 'message'))
+		if (getRversion() >= "3.2.0") {
+			invisible(capture.output(invisible(capture.output(Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, reg, annoType), type = 'output')), type = 'message'))
+		} else { Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, reg, annoType) }
 		if (is.null(Z[[1]])) return(list(m0 = 0, Z = NULL, w = NULL, pos = NULL))
 		Z <- t(Z[[1]])
 		if (!dim(Z)[2] == 0) Z <- Z[measured.ids, ]

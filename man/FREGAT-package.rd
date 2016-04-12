@@ -17,7 +17,6 @@
 \details{
 Package: FREGAT\cr
 Type: Package\cr
-Version: 1.0\cr
 License: GPLv3
 }
 \author{
