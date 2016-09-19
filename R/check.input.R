@@ -41,7 +41,13 @@ check.geno <- function(genodata, regions, n, ...) {
 				invisible(capture.output(vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2], type = 'output'))
 			} else { vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2] }
 			if (vcfn != n) stop("Dimensions of 'phenodata' and 'genodata' do not match")
-			annoType <- ifelse('annoType' %in% names(match.call()), eval(match.call()$annoType), '')
+#			annoType <- ifelse('annoType' %in% names(match.call()), eval(match.call()$annoType), '')
+			if ('annoType' %in% names(match.call())) {
+				annoType <- eval(match.call()$annoType)
+			} else {
+				annoType <- ''
+			}
+
 			return(list(gtype = 3, geneFile = geneFile, annoType = annoType))
 		} else { stop(paste("Please install 'seqminer' package to process VCF file", sep = '')) }
 	} else {

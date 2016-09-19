@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <math.h>
 #include <R.h>
+#include <Rmath.h>
+#include <math.h>
 
 /* One byte coding of SNP genotype allowing for uncertainty */
 

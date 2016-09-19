@@ -26,6 +26,5 @@ License: GPLv3
 	and Prof. Tatiana Axenovich for scientific guidance.\cr
 }
 \references{
-	Svishcheva G.R., Belonogova N.M. and Axenovich T.I. (2014) FFBSKAT: Fast Family-Based Sequence Kernel Association Test. PLoS ONE 9(6): e99407.\cr\cr
-	Svishcheva G.R., Belonogova N.M. and Axenovich T.I. (2015) Region-based association test for familial data under functional linear models. PLoS ONE 10(6): e0128999.\cr
+	Belonogova N.M., Svishcheva G.R., Axenovich T.I. (2016) FREGAT: an R package for region-based association analysis. Bioinformatics,  V32(15), P. 2392-2393.\cr
 }

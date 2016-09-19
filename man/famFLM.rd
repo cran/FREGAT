@@ -24,10 +24,6 @@ flip.genotypes = FALSE, impute.method = 'mean', ...)
 	containing genotypes coded as AA = 0, Aa = 1 and aa = 2, where a is a minor allele.\cr
 	- for PLINK binary data format, a character string indicating a *.bed file name (*.bim and *.fam
 	files should have the same prefix). This will make use of \code{read.plink()} function.\cr
-	- for VCF format, a character string indicating a *vcf.gz file name. This will require
-	\code{seqminer} R-package to be installed. Its \code{readVCFToMatrixByGene()} function will be
-	used to read VCF file gene-wise. The function also requires a geneFile, a text file listing all
-	genes in refFlat format (see Examples below). VCF file should be bgzipped and indexed by Tabix.\cr
 	- an object of \code{gwaa.data} or \code{snp.data} class (this will require
 	\code{GenABEL} R-package to be installed).}
 

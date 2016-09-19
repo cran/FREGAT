@@ -1,7 +1,13 @@
 // Function from package 'CompQuadForm' v.1.4.1 (c) 2013 P. Lafaye de Micheaux
 
 #include <R.h>
-#include "Rmath.h"
+#include <Rmath.h>
+#include <math.h>
+
+using std::exp;
+using std::log;
+using std::sqrt;
+using std::fabs;
 
 extern "C" {
 

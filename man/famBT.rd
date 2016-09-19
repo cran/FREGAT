@@ -128,7 +128,7 @@ geneFile <- system.file("testfiles/refFlat_hg19_6col.txt.gz",
 	package = "FREGAT")
 phe <- data.frame(trait = rnorm(85))
 out <- famBT(trait, phe, VCFfileName, geneFile = geneFile,
-	reg = "CFH", annoType = "Synonymous")
+	reg = "CFH", annoType = "Nonsynonymous")
 
 ## Run famBT with genotypes in PLINK binary data format:
 bedFile <- system.file("testfiles/sample.bed",
