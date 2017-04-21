@@ -41,7 +41,9 @@ ih2 = 0.3, eps = 1.e-04)
 
 	\item{df}{the gradient}
 
-	\item{logLH}{the total log-likelihood.}
+	\item{logLH}{the total log-likelihood}
+
+	\item{p.normality}{p value of Shapiro-Wilk normality test for the null model residuals.}
 }
 \examples{
 

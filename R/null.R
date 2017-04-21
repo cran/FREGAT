@@ -11,6 +11,7 @@ X <- check.covariates(n, formula, phenodata)
 
 measured.ids <- as.logical(X$measured.ids)
 X <- as.matrix(X$X)
+if (!is.null(kin)) kin <- kin[measured.ids, measured.ids]
 
 ############# NULL MODEL
 

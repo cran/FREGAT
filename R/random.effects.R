@@ -37,7 +37,7 @@ pval.famSKAT <- function(Z) {
 		Q <- sum(SIG_res * crossprod(K, SIG_res))
 		KKK <- CholSigmaiP11 %*% K %*% t(CholSigmaiP11)
 	}
-
+#browser()
 	eig <- eigen(KKK, symmetric = TRUE, only.values = TRUE)
 	ev <- eig$values[eig$values > 1e-6 * eig$values[1]]
 

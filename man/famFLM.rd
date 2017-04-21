@@ -7,9 +7,11 @@ A region-based association test for familial or population data under functional
 \usage{
 famFLM(formula, phenodata, genodata, kin = NULL, nullmod,
 regions = NULL, sliding.window = c(20, 10), mode = "add",
-ncores = 1, return.time = FALSE, positions = NULL, GVF = FALSE,
+ncores = 1, return.time = FALSE, beta.par = c(1, 1),
+weights = NULL, positions = NULL, GVF = FALSE,
 BSF = "fourier", kg = 30, kb = 25, order = 4, stat = "F",
-flip.genotypes = FALSE, impute.method = 'mean', ...)
+flip.genotypes = FALSE, impute.method = 'mean',
+write.file = FALSE, ...)
 }
 
 \arguments{
@@ -24,6 +26,10 @@ flip.genotypes = FALSE, impute.method = 'mean', ...)
 	containing genotypes coded as AA = 0, Aa = 1 and aa = 2, where a is a minor allele.\cr
 	- for PLINK binary data format, a character string indicating a *.bed file name (*.bim and *.fam
 	files should have the same prefix). This will make use of \code{read.plink()} function.\cr
+	- for VCF format, a character string indicating a *vcf.gz file name. This will require
+	\code{seqminer} R-package to be installed. Its \code{readVCFToMatrixByGene()} function will be
+	used to read VCF file gene-wise. The function also requires a geneFile, a text file listing all
+	genes in refFlat format (see Examples below). VCF file should be bgzipped and indexed by Tabix.\cr
 	- an object of \code{gwaa.data} or \code{snp.data} class (this will require
 	\code{GenABEL} R-package to be installed).}
 
@@ -54,7 +60,16 @@ flip.genotypes = FALSE, impute.method = 'mean', ...)
 
 	\item{return.time}{a logical value indicating whether the running time should be returned.}
 
-	\item{positions}{a vector of physical positions for genetic variants in \code{genodata}.}
+	\item{beta.par}{two positive numeric shape parameters in the beta distribution to assign weights 
+	for each genetic variant as a function of MAF (see Details). Default = c(1, 1) corresponds
+	to standard unweighted FLM. Has no effect if \code{weights} are defined.}
+
+	\item{weights}{a numeric vector or a function of minor allele frequency (MAF) to assign weights
+	for each genetic variant in the weighted kernels. Has no effect if one of unweighted kernels
+	was chosen. If NULL, the weights will be calculated using the beta distribution (see Details).}
+
+	\item{positions}{a vector of physical positions for genetic variants in \code{genodata}.
+	Not used when VCF file supplied.}
 
 	\item{GVF}{a basis function type for Genetic Variant Functions. Can be set to
 	"bspline" (B-spline basis) or "fourier" (Fourier basis). The default \code{GVF = FALSE}
@@ -81,6 +96,8 @@ flip.genotypes = FALSE, impute.method = 'mean', ...)
 	the best linear unbiased estimates (BLUEs) of mean genotypes will be calculated
 	taking into account the relationships between individuals [McPeek, et al., 2004,
 	DOI: 10.1111/j.0006-341X.2004.00180.x] and used for imputation.}
+
+	\item{write.file}{output file name to write results as they come (sequential mode only).}
 
 	\item{...}{other arguments that could be passed to \code{null()}, \code{read.plink()}\cr
 	and \code{readVCFToMatrixByGene()}.}
@@ -114,6 +131,16 @@ flip.genotypes = FALSE, impute.method = 'mean', ...)
 	Because of these restrictions, the model in effect may not always
 	be the same as it has been set. The ultimate model name is returned in
 	results in the "model" column (see below).
+	
+	\code{beta.par = c(a, b)} can be used to set weights for genetic variants.
+	Given the shape parameters of the beta function, \code{beta.par = c(a, b)}, 
+	the weights are defined using probability density function of the beta distribution:\cr
+	\cr
+	\eqn{W_{i}=(B(a,b))^{^{-1}}MAF_{i}^{a-1}(1-MAF_{i})^{b-1} },\cr
+	\cr
+	where \eqn{MAF_{i}} is a minor allelic frequency for the \eqn{i^{th}} genetic variant in the region,
+	which is estimated from genotypes, and \eqn{B(a,b)} is the beta function. This way of defining weights
+	is the same as in original SKAT (see [Wu, et al., 2011] for details).
 }
 \value{
 	A list with values:
@@ -138,7 +165,8 @@ flip.genotypes = FALSE, impute.method = 'mean', ...)
 }
 \references{
 	Svishcheva G.R., Belonogova N.M. and Axenovich T.I. (2015) Region-based association test for familial data under functional linear models. PLoS ONE 10(6): e0128999.\cr
-	Vsevolozhskaya O.A., et al. (2014) Functional Analysis of Variance for Association Studies. PLoS ONE 9(9): e105074.
+	Vsevolozhskaya O.A., et al. (2014) Functional Analysis of Variance for Association Studies. PLoS ONE 9(9): e105074.\cr
+	Wu M.C., et al. (2011) Rare-variant association testing for sequencing data with the sequence kernel association test. Am. J. Hum. Genet., Vol. 89, P. 82-93.
 	}
 \examples{
 
@@ -159,6 +187,17 @@ out <- famFLM(trait ~ age + sex, phenodata, genodata, kin,
 ## cores available):
 out <- famFLM(trait ~ age + sex, phenodata, genodata, kin,
 	out$nullmod, positions = snpdata$position, ncores = 2)
+
+## Run MLR with genotypes in VCF format:
+VCFfileName <- system.file(
+	"testfiles/1000g.phase1.20110521.CFH.var.anno.vcf.gz",
+	package = "FREGAT")
+geneFile <- system.file("testfiles/refFlat_hg19_6col.txt.gz",
+	package = "FREGAT")
+phe <- data.frame(trait = rnorm(85))
+out <- famFLM(trait, phe, VCFfileName, geneFile = geneFile,
+	reg = "CFH", annoType = "Nonsynonymous",
+	flip.genotypes = TRUE)
 
 ## Run famFLM with genotypes in PLINK binary data format:
 bedFile <- system.file("testfiles/sample.bed",

@@ -4,7 +4,7 @@
 sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE,
 kernel = 'linear.weighted', beta.par = c(1, 25), weights = NULL, method = 'kuonen',
 acc = 1e-8, lim = 1e+6, return.variance.explained = FALSE, reml = TRUE,
-flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, ...) {
+flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, write.file = FALSE, ...) {
 
 	do.call(do.regional, c(make.call(match.call()), test = 'famSKAT'), envir = parent.frame())
 
@@ -12,7 +12,7 @@ flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, ...) {
 
 'famBT' <- function (formula, phenodata, genodata, kin = NULL, nullmod, regions = NULL,
 sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE,
-beta.par = c(1, 25), weights = NULL, flip.genotypes = FALSE, impute.method = 'mean', ...) {
+beta.par = c(1, 25), weights = NULL, flip.genotypes = FALSE, impute.method = 'mean', write.file = FALSE, ...) {
 
 	do.call(do.regional, c(make.call(match.call()), test = 'famBT'), envir = parent.frame())
 
@@ -20,16 +20,16 @@ beta.par = c(1, 25), weights = NULL, flip.genotypes = FALSE, impute.method = 'me
 
 'MLR' <- function (formula, phenodata, genodata, kin = NULL, nullmod, regions = NULL,
 sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE,
-stat = 'F', impute.method = 'mean', ...) {
+stat = 'F', impute.method = 'mean', write.file = FALSE, ...) {
 
 	do.call(do.regional, c(make.call(match.call()), test = 'MLR'), envir = parent.frame())
 
 }
 
 'famFLM' <- function (formula, phenodata, genodata, kin = NULL, nullmod, regions = NULL,
-sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE,
-positions = NULL, GVF = FALSE, BSF = 'fourier', kg = 30, kb = 25, order = 4,
-stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', ...) {
+sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE, beta.par = c(1, 1),
+weights = NULL, positions = NULL, GVF = FALSE, BSF = 'fourier', kg = 30, kb = 25, order = 4,
+stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', write.file = FALSE, ...) {
 
 	do.call(do.regional, c(make.call(match.call()), test = 'famFLM'), envir = parent.frame())
 

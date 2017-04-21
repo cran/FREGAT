@@ -2,9 +2,9 @@
 
 'do.regional' <- function (formula, phenodata, genodata, kin = NULL, nullmod, #return.nullmod = TRUE,
 regions = NULL, sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE, #return.sample.size = TRUE,
-kernel = 'linear.weighted', beta.par = c(1, 25), weights = NULL, method = 'kuonen', acc = 1e-8, lim = 1e+6,
+kernel = 'linear.weighted', beta.par = NULL, weights = NULL, method = 'kuonen', acc = 1e-8, lim = 1e+6,
 return.variance.explained = FALSE, reml = TRUE, positions = NULL, GVF = FALSE, BSF = 'fourier', kg = 30,
-kb = 25, order = 4, stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, test, ...) {
+kb = 25, order = 4, stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, write.file = FALSE, test, ...) {
 
 t0 <- proc.time()
 
@@ -73,7 +73,14 @@ fweights <- NULL # for genotypes() lazy estimate
 omit.linear.dependent <- FALSE
 
 if (test != 'MLR') { # no checks yet needed for MLR
-	fun <- as.function(get(paste('check.spec', test, sep='.')))
+	if (missing(beta.par)) {
+		if (test == 'famFLM') beta.par <- c(1, 1) else beta.par <- c(1, 25)
+	}
+	fweights <- check.weights(weights, k, beta.par)
+	if (!is.null(fweights)) weights <- NULL
+}
+if (test %in% c('famSKAT', 'famFLM')) {
+	fun <- as.function(get(paste('check.spec', test, sep = '.')))
 	environment(fun) <- environment()
 	tmp <- fun()
 	for (i in 1:length(tmp)) assign(names(tmp)[i], tmp[[i]])
@@ -179,6 +186,7 @@ if (test == 'famFLM') environment(pval.MLR) <- environment()
 if (ncores == 1) {
 
 	out <- as.data.frame(matrix(NA, nrow = nreg, ncol = lgt))
+	c <- 0
 
 	for (i in 1:nreg) {
 		r <- as.character(l[i])
@@ -193,8 +201,27 @@ if (ncores == 1) {
 			} else if (rtype == 3) reg <- r
 		} else { reg <- p1[i]:p2[i] }
 		out[i, ] <- analyze.region()
-
+		#browser()
+		if (write.file != FALSE) {
+			if (c == 0) {
+			cn <- c('region', 'markers', 'cleaned.markers', 'pvalue')
+			if (test == 'famSKAT' & return.variance.explained) {
+				cn <- c(cn, 'prop.variance')
+				if (!reml) cn <- c(cn, 'h2', 'total.var', 'logLH')
+			} else if (test == 'famFLM') {
+				cn <- c(cn, 'model')
+			} else if (test == 'famBT') cn <- c(cn, 'beta', 'se.beta')
+			write.table(t(cn), file = write.file, append = T, col.names = F, row.names = F, quote = F)
+			c <- 1
+			}
+			if (test == 'famFLM') {
+				out[i, 5] <- gsub("fourier", "F", out[i, 5])
+				out[i, 5] <- gsub("bspline", "B", out[i, 5])
+			}
+			write.table(out[i, ], file = write.file, append = T, col.names = F, row.names = F, quote = F)
+		}
 	}
+
 
 	#out[, 1] <- l
 

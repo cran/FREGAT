@@ -17,7 +17,9 @@ NullMixedModel <- function(y, X, R, opt.method = 'optimize', ih2 = 0.3, eps = 1.
 	f_h2 <- function(h2) {
 		Lam <- 1./(1. + h2*L) # (nx1) vector of eigenvalues for V^-1
 		AAA <- t(tTX) %*% diag(Lam) # (mxn) matrix (AAA=t(tTX) %*% diag(Lam))
-		Y <- tTy - (tTX %*% solve((AAA %*% tTX), AAA)) %*% tTy # (nx1) vector
+#		browser()
+#		Y <- tTy - (tTX %*% solve((AAA %*% tTX), AAA)) %*% tTy # (nx1) vector
+		Y <- tTy - (tTX %*% (ginv(AAA %*% tTX) %*% AAA)) %*% tTy # (nx1) vector # ginv(x) %*% y ~= solve(x, y)
 		logLH <- log(mean(Lam*(Y*Y))) - mean(log(Lam)) # to minimize
 		return(logLH) 
 	}
@@ -27,7 +29,8 @@ NullMixedModel <- function(y, X, R, opt.method = 'optimize', ih2 = 0.3, eps = 1.
 	df_h2 <- function(h2) {
 		Lam <- 1./(1. + h2*L) # (nx1) vector of eigenvalues for V^-1
 		AAA <- t(tTX) %*% diag(Lam) # (mxn) matrix
-		Y <- tTy - (tTX %*% solve((AAA %*% tTX), AAA)) %*% tTy # (nx1) vector
+#		Y <- tTy - (tTX %*% solve((AAA %*% tTX), AAA)) %*% tTy # (nx1) vector
+		Y <- tTy - (tTX %*% (ginv(AAA %*% tTX) %*% AAA)) %*% tTy # (nx1) vector # ginv(x) %*% y ~= solve(x, y)
 		LamYY <- Lam*(Y*Y) # vector
 		dfh2 <- mean(Lam*LamYY) - mean(Lam)*mean(LamYY) # it should be equal to 0
 		return(dfh2) 
@@ -38,12 +41,13 @@ NullMixedModel <- function(y, X, R, opt.method = 'optimize', ih2 = 0.3, eps = 1.
 	Alpha_Sigma <- function(esth2) {
 		Lam <- 1./(1. + esth2*L)
 		AAA <- t(tTX) %*% diag(Lam)
-		alpha <- solve((AAA %*% tTX), AAA) %*% tTy # regression coefficients for covariates
+#		alpha <- solve((AAA %*% tTX), AAA) %*% tTy # regression coefficients for covariates
+		alpha <- (ginv(AAA %*% tTX) %*% AAA) %*% tTy # regression coefficients for covariates # ginv(x) %*% y ~= solve(x, y)
 		Y <- tTy - tTX %*% alpha
 		sigma2 <- mean(Lam*(Y*Y))
 		return(list(alpha = alpha, sigma2 = sigma2))
 	}
-
+	
 	#------------------------------------------------------------------------
 
 	nnn <- length(y)
@@ -54,6 +58,7 @@ NullMixedModel <- function(y, X, R, opt.method = 'optimize', ih2 = 0.3, eps = 1.
 		Lambda <- decomR$values # Lambda is a vector of eigenvalues of R
 		L <- Lambda - 1
 		tT <- t(decomR$vectors) # tT is matrix of eigenvectors of R
+		#browser()
 		tTy <- tT %*% y # y is phenotype vector 
 		tTX <- tT %*% X # X is covariate matrix
 
@@ -93,23 +98,36 @@ NullMixedModel <- function(y, X, R, opt.method = 'optimize', ih2 = 0.3, eps = 1.
 		a <- summary(fit)$coefficients
 		rownames(a) <- gsub('predicts', '', rownames(a))
 		rownames(a)[1] <- '(Intercept)'
-		a[,1] <- alpha
-
-		return(list(h2 = Apar, total.var = sigma2, alpha = a, df = df, logLH = LH))
+#		browser()
+		a[, 1] <- alpha
+        ###########################################################################
+#		browser()
+		Pval_Norm <- shapiro.test(pheno - predicts %*% a[, 1])$p.value  # Normality test
+		#Pval_Norm <- shapiro.test(pheno - predicts %*% a)$p.value  # Normality test
+		
+		###########################################################################
+		#return(list(h2 = Apar, total.var = sigma2, alpha = a, df = df, logLH = LH))
+		return(list(h2 = Apar, total.var = sigma2, alpha = a, df = df, logLH = LH, p.normality = Pval_Norm))
 
 	} else {
 		fit <- suppressWarnings(glm(y ~ X - 1, family = "gaussian"))
 		a <- summary(fit)$coefficients
 		rownames(a) <- colnames(X)
 #		rownames(a)[1] <- '(Intercept)'
-		as.matrix(a[,1]) -> alpha
+		as.matrix(a[, 1]) -> alpha
 #		alpha <- (chol2inv(chol(t(X)%*%X)) %*% t(X)) %*% y
 		yXa <- y - (X %*% alpha)
 		sigma2 <- mean(yXa * yXa)
 		LH <- -0.5 * nnn * (log(2 * pi) + log(sigma2) + 1) # total log-likelihood
 		sigma2 <- sigma2 * nnn / (nnn - 1)
 		rownames(a)[1] <- '(Intercept)'
-		return(list(h2 = 0.0, total.var = sigma2, alpha = a, df = 0.0, logLH = LH)) # total var - var ostatkov..
+		###########################################################################
+#		browser()
+		Pval_Norm <- shapiro.test(y - as.matrix(X) %*% a[, 1])$p.value  # Normality test
+        ###########################################################################
+#		return(list(h2 = 0.0, total.var = sigma2, alpha = a, df = 0.0, logLH = LH)) # total var - var ostatkov..
+		return(list(h2 = 0.0, total.var = sigma2, alpha = a, df = 0.0, logLH = LH, p.normality = Pval_Norm)) # total var - var ostatkov..
+
 	}
 
 }
@@ -127,3 +145,4 @@ ginv <- function(X, tol = sqrt(.Machine$double.eps)) {
 		if(any(nz)) s$v[, nz] %*% (t(s$u[, nz])/s$d[nz]) else X,
 		dimnames = dnx[2:1])
 }
+

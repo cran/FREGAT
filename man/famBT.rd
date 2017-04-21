@@ -9,7 +9,8 @@ Burden test in related or population samples
 famBT(formula, phenodata, genodata, kin = NULL, nullmod,
 regions = NULL, sliding.window = c(20, 10), mode = "add",
 ncores = 1, return.time = FALSE, beta.par = c(1, 25),
-weights = NULL, flip.genotypes = FALSE, impute.method = 'mean', ...)
+weights = NULL, flip.genotypes = FALSE, impute.method = 'mean',
+write.file = FALSE, ...)
 }
 \arguments{
 	\item{formula}{referring to the column(s) in \code{phenodata} to be analyzed as outcome and,
@@ -73,6 +74,8 @@ weights = NULL, flip.genotypes = FALSE, impute.method = 'mean', ...)
 	taking into account the relationships between individuals [McPeek, et al., 2004]
 	and used for imputation.}
 
+	\item{write.file}{output file name to write results as they come (sequential mode only).}
+
 	\item{...}{other arguments that could be passed to \code{null()}, \code{read.plink()}\cr
 	and \code{readVCFToMatrixByGene()}.}
 }
@@ -128,7 +131,8 @@ geneFile <- system.file("testfiles/refFlat_hg19_6col.txt.gz",
 	package = "FREGAT")
 phe <- data.frame(trait = rnorm(85))
 out <- famBT(trait, phe, VCFfileName, geneFile = geneFile,
-	reg = "CFH", annoType = "Nonsynonymous")
+	reg = "CFH", annoType = "Nonsynonymous",
+	flip.genotypes = TRUE)
 
 ## Run famBT with genotypes in PLINK binary data format:
 bedFile <- system.file("testfiles/sample.bed",

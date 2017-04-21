@@ -123,6 +123,7 @@ check.weights <- function(weights, k, beta.par) {
 			fweights <- weights
 		} else {
 			fweights <- NULL
+			if (gtype == 3) stop("Using vector of weights is not yet implemented for vcf data. Please use other genotype input formats or set weights as a function of MAF.")
 			if (length(weights) != k & k) stop("Dimensions of weights and genodata do not match")
 		}
 	}

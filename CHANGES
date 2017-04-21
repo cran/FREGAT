@@ -1,0 +1,9 @@
+Version: 1.0.1
+	- R compatibility issues
+Version: 1.0.2
+	- multiple annotation allowed with VCF files
+Version: 1.0.3
+	- weights allowed for FLM tests
+	- FLM tests implemented for VCF files
+	- 'write to file' option added
+	- residuals from the null model now tested for normality

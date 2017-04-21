@@ -64,7 +64,7 @@ select.subjects = NULL, select.snps = NULL)
   names correspond with the column names of the genotype matrix.}
 }
 \references{PLINK: Whole genome association analysis toolset.
-  \url{http://pngu.mgh.harvard.edu/~purcell/plink/}
+  \url{http://zzz.bwh.harvard.edu/plink/}
 }
 \author{Originally written by David Clayton (snpStats package),
   modified by Nadezhda Belonogova}

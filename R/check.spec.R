@@ -1,17 +1,7 @@
 # FREGAT (c) 2016 Gulnara R. Svishcheva & Nadezhda M. Belonogova, ICG SB RAS
 
-check.spec.famBT <- function() {
-
-	fweights <- check.weights(weights, k, beta.par)
-	if (!is.null(fweights)) weights <- NULL
-	list(fweights = fweights, weights = weights)
-
-}
-
 check.spec.famSKAT <- function() {
 
-	fweights <- check.weights(weights, k, beta.par)
-	if (!is.null(fweights)) weights <- NULL
 	method <- check.method(method)
 	kernel <- match.arg(kernel, c('linear.weighted', 'quadratic', 'IBS', 'IBS.weighted', '2wayIX'))
 	if (length(rho) > 1 | (length(rho) == 1 & rho)) {
@@ -31,9 +21,11 @@ check.spec.famFLM <- function() {
 
 	stat <- match.arg(stat, c('F', 'Chisq', 'LRT'))
 	BSF <- match.arg(BSF, c('fourier', 'bspline'))
-	if (is.null(positions)) stop("'positions' are missing, with no default")
-	if (length(positions) != k) stop("Dimensions of 'positions' and 'genodata' do not match")
- 
+	if (gtype < 3) {
+		if (is.null(positions)) stop("'positions' are missing, with no default")
+		if (length(positions) != k) stop("Dimensions of 'positions' and 'genodata' do not match")
+	}
+
 	g <- TRUE
 
 #	if (missing(GVF)) g <- FALSE

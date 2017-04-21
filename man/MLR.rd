@@ -7,7 +7,8 @@ A multiple linear regression for familial or population data
 \usage{
 MLR(formula, phenodata, genodata, kin = NULL, nullmod, regions = NULL,
 sliding.window = c(20, 10), mode = "add", ncores = 1,
-return.time = FALSE, stat = "F", impute.method = 'mean', ...)
+return.time = FALSE, stat = "F", impute.method = 'mean',
+write.file = FALSE, ...)
 }
 
 \arguments{
@@ -63,6 +64,8 @@ return.time = FALSE, stat = "F", impute.method = 'mean', ...)
 	the best linear unbiased estimates (BLUEs) of mean genotypes will be calculated
 	taking into account the relationships between individuals [McPeek, et al., 2004,
 	DOI: 10.1111/j.0006-341X.2004.00180.x] and used for imputation.}
+
+	\item{write.file}{output file name to write results as they come (sequential mode only).}
 
 	\item{...}{other arguments that could be passed to \code{null()}, \code{read.plink()}\cr
 	and \code{readVCFToMatrixByGene()}.}

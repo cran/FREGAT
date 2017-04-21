@@ -1,4 +1,4 @@
-useDynLib(FREGAT)
+useDynLib(FREGAT, .registration = TRUE)
 
 import(Matrix)
 import(splines)
@@ -8,8 +8,8 @@ importFrom("methods", "as", "is")
 importFrom("stats", "anova", "as.formula", "dbeta", "dchisq", "glm",
              "integrate", "kernel", "knots", "model.frame",
              "model.matrix", "nlminb", "optim", "optimize", "pchisq",
-             "pnorm", "qchisq", "uniroot", "var", "weights")
-importFrom("utils", "capture.output", "read.table")
+             "pnorm", "qchisq", "uniroot", "var", "weights", "shapiro.test")
+importFrom("utils", "capture.output", "read.table", "write.table")
 
 export(FFBSKAT)
 export(famBT)

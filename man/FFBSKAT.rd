@@ -11,7 +11,7 @@ ncores = 1, return.time = FALSE, kernel = "linear.weighted",
 beta.par = c(1, 25), weights = NULL, method = "kuonen",
 acc = 1e-8, lim = 1e+6, return.variance.explained = FALSE,
 reml = TRUE, flip.genotypes = FALSE, impute.method = 'mean',
-rho = FALSE, ...)
+rho = FALSE, write.file = FALSE, ...)
 }
 
 \arguments{
@@ -100,6 +100,8 @@ rho = FALSE, ...)
 	\item{rho}{If TRUE the optimal test is used [Lee, et al., 2012]. \code{rho} can be a vector of grid
 	values from 0 to 1. The default grid is (0 : 10) / 10.}
 
+	\item{write.file}{output file name to write results as they come (sequential mode only).}
+
 	\item{...}{other arguments that could be passed to \code{null()}, \code{read.plink()}\cr
 	and \code{readVCFToMatrixByGene()}.}
 }
@@ -175,7 +177,8 @@ geneFile <- system.file("testfiles/refFlat_hg19_6col.txt.gz",
 	package = "FREGAT")
 phe <- data.frame(trait = rnorm(85))
 out <- FFBSKAT(trait, phe, VCFfileName, geneFile = geneFile,
-	reg = "CFH", annoType = "Nonsynonymous")
+	reg = "CFH", annoType = "Nonsynonymous",
+	flip.genotypes = TRUE)
 
 ## Run FFBSKAT with genotypes in PLINK binary data format:
 bedFile <- system.file("testfiles/sample.bed",

@@ -41,6 +41,8 @@ pval.famFLM <- function(Z) {
 #	geno <- CholInvCo %*% Z$Z  # making centralized and independent genotypes # Cor
 #	m1 <- dim(geno)[2]
 	m1 <- dim(Z$Z)[2]
+#	browser()
+	Z$Z <- t(t(Z$Z) * Z$w)
 	model <- model0
 
 	# base condition is m >= kg >= kb
