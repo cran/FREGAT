@@ -37,7 +37,6 @@ pval.famSKAT <- function(Z) {
 		Q <- sum(SIG_res * crossprod(K, SIG_res))
 		KKK <- CholSigmaiP11 %*% K %*% t(CholSigmaiP11)
 	}
-#browser()
 	eig <- eigen(KKK, symmetric = TRUE, only.values = TRUE)
 	ev <- eig$values[eig$values > 1e-6 * eig$values[1]]
 
@@ -73,14 +72,10 @@ pval.famSKAT <- function(Z) {
 				h2 <- NA
 				h2r <- NA
 			}
-			#fullik$value = (-2*log(LH)-n*log(2*pi))
 			LH <- -(fullik$value + n * log(2 * pi)) # 2*logLH1
 			chi <- LH - 2 * nullmod$logLH # 2*logLH1 - 2*logLH0
 			p <- pchisq(chi, 1, lower.tail = F)
-#				chi <- -fullik$value - n*log(2*pi) - 2*nullmod$logLH #   chi = 2*logLH1 - 2*logLH0
-#	p <- pchisq(chi, 1, lower.tail = F)
 			LH <- LH / 2 # logLH1
-			#LH<- (-fullik$value - n*log(2*pi))/2
 			c(p, h2r, h2, fullik$par[1], LH)
 
 		} else { # reml estimate
@@ -98,5 +93,50 @@ pval.famSKAT <- function(Z) {
 			c(p, prop)#, tau2, cf)
 		}
 	}
+
+}
+
+sumstat.famSKAT <- function(Z) {
+
+	Q <- sum((Z$w * Z$Z) ^ 2) # statistic
+	KKK <- t(Z$U * Z$w) * Z$w # kernel matrix
+	
+	eig <- eigen(KKK, symmetric = TRUE, only.values = TRUE)
+	ev <- eig$values[eig$values > 1e-6 * eig$values[1]]
+	if (method == 'kuonen') {
+		p <- pchisqsum(Q, rep(1, length(ev)), ev, lower.tail = F, method = 'sad') }
+	else if (method == 'davies') {
+		p <- davies(Q, ev, acc = acc, lim = lim)$Qq
+	}
+	p <- max(min(p, 1), 0)
+
+	return(p)
+
+}
+
+sumstat.famSKATO <- function(Z) {
+
+	Q05 <- Z$w * Z$Z  # weighting of Z-score statictic
+	KKK <- t(Z$U * Z$w) * Z$w  # kernel matrix
+	eig <- eigen(KKK, symmetric = TRUE)
+	eig$values[eig$values <= 0] <- 1e-7
+	#eig$values <- abs(eig$values)
+#CC	C05 <- eig$vec %*% diag(sqrt(eig$val)) %*% t(eig$vec)
+ 	C05 <- eig$vec %*% (t(eig$vec) * sqrt(eig$val))
+
+	m1 <- length(Z$Z)
+	Q.all <- c()
+	for (rh in rhos) {
+		CORB <- matrix(NA, m1, m1)
+		if (rh < 1) {
+			CORB05 <- chol(diag(m1) * (1 - rh) + rh)  # (correlation matrix for betas) ^ 0.5
+		} else { CORB05 <- matrix(1, m1, m1) / sqrt(m1) }  # case of famBT (rh = 1)
+		Q05W <- Q05 %*% t(CORB05)
+		Q <- sum(Q05W * Q05W)
+		Q.all <- c(Q.all, Q)
+	}
+	Q <- rbind(Q.all, NULL)
+	out <- SKAT_Optimal_Get_Pvalue(Q, C05, rhos, method, acc, lim)
+	return(out$p.value[1])
 
 }

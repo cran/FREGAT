@@ -2,9 +2,9 @@
 
 'do.regional' <- function (formula, phenodata, genodata, kin = NULL, nullmod, #return.nullmod = TRUE,
 regions = NULL, sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE, #return.sample.size = TRUE,
-kernel = 'linear.weighted', beta.par = NULL, weights = NULL, method = 'kuonen', acc = 1e-8, lim = 1e+6,
+kernel = 'linear.weighted', beta.par = NULL, weights = NULL, method = NULL, acc = 1e-8, lim = 1e+6,
 return.variance.explained = FALSE, reml = TRUE, positions = NULL, GVF = FALSE, BSF = 'fourier', kg = 30,
-kb = 25, order = 4, stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, write.file = FALSE, test, ...) {
+kb = 25, order = 4, stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', rho = FALSE, var.fraction = .85, write.file = FALSE, test, ...) {
 
 t0 <- proc.time()
 
@@ -69,23 +69,26 @@ ncores <- check.cores(ncores, nreg)
 
 ############ SPECIFIC CHECKS
 
-fweights <- NULL # for genotypes() lazy estimate
+fweights <- NULL # for genotypes()
 omit.linear.dependent <- FALSE
 
 if (test != 'MLR') { # no checks yet needed for MLR
 	if (missing(beta.par)) {
-		if (test == 'famFLM') beta.par <- c(1, 1) else beta.par <- c(1, 25)
+		if (test %in% c('famFLM', 'PCA')) beta.par <- c(1, 1) else beta.par <- c(1, 25)
 	}
-	fweights <- check.weights(weights, k, beta.par)
+	if (missing(method)) {
+		if (test == 'PCA') method <- 'PC' else method <- 'kuonen'
+	}
+	fweights <- check.weights(weights, k, beta.par, gtype)
 	if (!is.null(fweights)) weights <- NULL
+	if (test == 'PCA') n.pca <- n1 - 1
+	if (test %in% c('famSKAT', 'famFLM')) {
+		fun <- as.function(get(paste('check.spec', test, sep = '.')))
+		environment(fun) <- environment()
+		tmp <- fun()
+		for (i in 1:length(tmp)) assign(names(tmp)[i], tmp[[i]])
+	}
 }
-if (test %in% c('famSKAT', 'famFLM')) {
-	fun <- as.function(get(paste('check.spec', test, sep = '.')))
-	environment(fun) <- environment()
-	tmp <- fun()
-	for (i in 1:length(tmp)) assign(names(tmp)[i], tmp[[i]])
-}
-
 ############ NULL MODEL
 
 t00 <- proc.time()
@@ -163,6 +166,8 @@ if (test != 'famSKAT' | (test == 'famSKAT' & (rho | return.variance.explained)))
 	}
 }
 
+if (test == 'PCA') yc <- (pheno - mean(pheno)) / sd(pheno)
+
 ############ ANALYSIS
 
 t00 <- proc.time()
@@ -172,11 +177,11 @@ if (test == 'famSKAT' & return.variance.explained) {
 	if (reml) lgt <- 5 else lgt <- 8
 } else if (test == 'famFLM') {
 	lgt <- 5
-} else if (test == 'famBT') { lgt <- 6 }
+} else if (test %in% c('famBT', 'PCA')) { lgt <- 6 }
 
 environment(analyze.region) <- environment()
 environment(genotypes) <- environment()
-pval.region <- as.function(get(paste('pval', test, sep='.')))
+pval.region <- as.function(get(paste('pval', test, sep = '.')))
 environment(pval.region) <- environment()
 if (test == 'famSKAT' & rho) environment(pval.famSKATO) <- environment()
 if (test == 'famFLM') environment(pval.MLR) <- environment()
@@ -210,8 +215,10 @@ if (ncores == 1) {
 				if (!reml) cn <- c(cn, 'h2', 'total.var', 'logLH')
 			} else if (test == 'famFLM') {
 				cn <- c(cn, 'model')
-			} else if (test == 'famBT') cn <- c(cn, 'beta', 'se.beta')
-			write.table(t(cn), file = write.file, append = T, col.names = F, row.names = F, quote = F)
+			} else if (test == 'famBT') {
+				cn <- c(cn, 'beta', 'se.beta')
+			} else if (test == 'PCA') cn <- c(cn, 'ncomponents', 'explained.variance.fraction')
+			write.table(t(cn), file = write.file, col.names = F, row.names = F, quote = F)
 			c <- 1
 			}
 			if (test == 'famFLM') {
@@ -299,7 +306,9 @@ if (test == 'famSKAT' & return.variance.explained) {
 	out[, 5] <- gsub("fourier", "F", out[, 5])
 	out[, 5] <- gsub("bspline", "B", out[, 5])
 	out[, 2:4] <- sapply(2:4, function(x) as.numeric(as.character(out[, x])))
-} else if (test == 'famBT') colnames(out) [5:6] <- c('beta', 'se.beta')
+} else if (test == 'famBT') {
+	colnames(out) [5:6] <- c('beta', 'se.beta')
+} else if (test == 'PCA') colnames(out) [5:6] <- c('ncomponents', 'explained.variance.fraction')
 
 ttt <- (proc.time() - t00)
 

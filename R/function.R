@@ -156,8 +156,7 @@ Get_Liu_PVal.MOD.Lambda.Zero<-function(Q, muQ, muX, sigmaQ, sigmaX, l, d){
 
 }
 
-
-Get_Lambda<-function(K){
+Get_Lambda <-function(K){
 
 	out.s<-eigen(K,symmetric=TRUE, only.values = TRUE)
 	#print(out.s$values)

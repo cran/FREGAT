@@ -1,6 +1,6 @@
 Package: FREGAT
 Title: Family REGional Association Tests
-Version: 1.0.3
+Version: 1.1.0
 Author: Nadezhda M. Belonogova <belon@bionet.nsc.ru> and
  Gulnara R. Svishcheva <gulsvi@mail.ru>,
  with contributions from:
@@ -16,5 +16,5 @@ Description: Fast regional association analysis of quantitative traits for famil
 License: GPL-3
 LazyLoad: yes
 NeedsCompilation: yes
-Packaged: 2017-04-21 05:39:47 UTC; lima
-Date/Publication: 2017-04-21 05:57:18 UTC
+Packaged: 2018-01-15 04:33:09 UTC; lima
+Date/Publication: 2018-01-15 05:07:14 UTC

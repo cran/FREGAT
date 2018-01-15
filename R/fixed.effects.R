@@ -5,7 +5,8 @@ pval.famBT <- function(Z) {
 	w <- Z$w
 	Z <- P11CholInvCo %*% Z$Z # Cor
 	if (ncol(Z) > 1) {
-		Z <- Z %*% diag(w) # n x m
+#CC		Z <- Z %*% diag(w) # n x m
+		Z <- t(t(Z) * w)
 		Z <- rowMeans(Z)
 	} else {
 		Z <- Z * w
@@ -16,14 +17,11 @@ pval.famBT <- function(Z) {
 	chi2 <- (est.beta ^ 2) / se.beta
 	p <- pchisq(chi2, 1, lower.tail = F)
 
-	#a<-summary(lm(pheno ~ Z - 1))$coef
 	return(c(p, est.beta, sqrt(se.beta)))#, m0, m1))
 
 }
 
 pval.MLR <- function(Z) {
-#browser()
-#	if (missing(geno)) geno <- P11CholInvCo %*% Z$Z  # making centralized and independent genotypes # Cor
 	if (H2est) Z$Z <- CholInvCo %*% Z$Z
 
 	fit <- glm(pheno ~ covariate + Z$Z - 1, family = "gaussian")
@@ -38,10 +36,7 @@ pval.MLR <- function(Z) {
 
 pval.famFLM <- function(Z) {
 
-#	geno <- CholInvCo %*% Z$Z  # making centralized and independent genotypes # Cor
-#	m1 <- dim(geno)[2]
 	m1 <- dim(Z$Z)[2]
-#	browser()
 	Z$Z <- t(t(Z$Z) * Z$w)
 	model <- model0
 
@@ -101,28 +96,93 @@ pval.famFLM <- function(Z) {
 	}
 
 	### Calculation of matrix FI in given positions of a region
-#	return(pos)
 	if (g) {
 		B <- eval.basis(Z$pos, genobasis)
 		### Calculation of formula (1) for functional genotypes (depend on ONLY positions)
 		FFF <- ginv(t(B) %*% B) %*% t(B)
-#		U <- geno %*% t(FFF)
 		U <- Z$Z %*% t(FFF)
 		UJ <- matrix( U %*% J, ncol = dim(J)[2])
-#		browser()
 	} else {
 		B <- eval.basis(Z$pos, betabasis)
-#		UJ <- geno %*% B
 		UJ <- Z$Z %*% B
 	}
 	if (H2est) UJ <- CholInvCo %*% UJ  # making centralized and independent genotypes # Cor
-#	fit <- glm(pheno ~ covariate + UJ - 1, family = "gaussian")
-#browser()
 	fit <- glm(pheno ~ covariate + UJ - 1, family = "gaussian")
 	if (stat == 'F') {
 		p <- anova(fit, test = stat)[3, 6]
+
 	} else { p <- anova(fit, test = stat)[3, 5] }
 
 	c(p, model)
 
+}
+
+pval.single <- function(Z) {
+	Z <- P11CholInvCor %*% Z
+	se.beta0 <- 1 / sum(Z * Z)
+	se.beta <- se.beta0 * nullmod$total.var
+	est.beta <- sum(Z * as.vector(pheno)) * se.beta0
+	chi2 <- (est.beta ^ 2) / se.beta
+	p <- pchisq(chi2, 1, lower.tail = F)
+	return(c(p, est.beta, sqrt(se.beta)))
+}
+
+pval.PCA <- function(Z) {
+	Gcc <- (Z$Z - rep(1, n1) %*% t(colMeans(Z$Z))) # n1 = N
+	Gc <- t(Z$w * t(Gcc))
+	numberPCA(yc, Gc, n.pca, var.fraction) # n.pca = N - 1
+}
+
+numberPCA <- function(yc, Gc, n, var.fraction) {
+	m <- qr(Gc)$rank
+	pCA <- PC(Gc, n) # n = N - 1
+	COMPs0 <- as.matrix(pCA$scores[, 1:m])     # matrix of independent scores
+	CPV <- pCA$importance[3, 1:m]   # Cumulative Proportion of Variance (CPV)
+	comp <- which(CPV >= var.fraction)      # components for which Explained variance fraction is about 85%
+	minP <- 100
+	minM <- 0
+	M <- min(comp)
+	COMPs <- as.matrix(COMPs0[,1:M])
+	m <- qr(COMPs)$rank
+	GY <- as.vector(t(COMPs) %*% yc)
+	CC <- t(COMPs) %*% COMPs
+	if (M > 1) {
+		RSS <- n - sum(GY * as.vector((CC %^% (-1)) %*% GY))
+	} else { RSS <- n - GY * GY / CC }
+	Fstat <- ((n - m) / m) * (n - RSS) / RSS    # F-statistic
+	p <- pf(Fstat, m, n - m, lower.tail = FALSE)
+	if (p < minP) minM <- M
+	minP <- min(p, minP)
+	c(minP, minM, CPV[minM])
+}
+
+PC <- function(X, n) {
+	U <- (t(X) %*% X) / n # n = N - 1
+	eX1 <- eigen(U, symmetric = TRUE)
+	values <- eX1$values
+	vectors <- eX1$vectors
+	values[values < 0] <- 0
+	sdev <- sqrt(values)
+	ind.var <- sdev ^ 2
+	total.var <- sum(ind.var)
+	scores <- X %*% vectors
+	scorenames <- paste('PC', 1:ncol(X), sep = '')
+	colnames(scores) <- colnames(vectors) <- scorenames
+	rownames(vectors) <- colnames(X)
+	prop.var <- ind.var / total.var
+	cum.var <- rep(NA, ncol(X))
+	for (i in 1:ncol(X)) { cum.var[i] <- sum(prop.var[1:i]) }
+	importance <- rbind(sdev, prop.var, cum.var)
+	colnames(importance) <- scorenames
+	rownames(importance) <- c("Standard Deviation", "Proportion of Variance", "Cumulative Proportion")
+	list(values=values,vectors=vectors,scores=scores,importance=importance,sdev=sdev)
+}
+
+"%^%" <- function(U, k) {
+	UUU <- eigen(U, symmetric = TRUE)  # UUU = Uvec %*% diag(Uval) %*% t(Uvec)
+	Uval <- UUU$val
+	Uvec <- UUU$vec
+	Uvec <- Uvec[,Uval > 1e-7]
+	Uval <- Uval[Uval > 1e-7]
+	Uvec %*% (t(Uvec) * (Uval ^ k))
 }

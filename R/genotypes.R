@@ -1,6 +1,9 @@
 # FREGAT (c) 2016
 
 genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, positions, flip.genotypes, test, et cetera) {
+	if (gtype < 3) {
+		if (all(is.na(reg))) return(list(m0 = 0, Z = 'not found', w = NULL, pos = NULL))
+	}
 	w <- pos <- NULL
 	if (!gtype) {
 		Z <- as.matrix(genodata[, reg])
@@ -12,25 +15,24 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 		Z <- SnpMatrix2numeric(Z)
 	} else if (gtype == 3) {
 		if (length(annoType) == 1) {
-			Z <- read.vcf(genodata, geneFile, reg, annoType)
+			Z <- read.vcf(genodata, geneFile, r, annoType)
 			if (is.null(Z[[1]])) return(list(m0 = 0, Z = NULL, w = NULL, pos = NULL))
 			Z <- t(Z[[1]])
-			if (test == 'famFLM') pos <- read.vcf.pos(genodata, geneFile, reg, annoType)
-		} else { 
+			if (test == 'famFLM') pos <- read.vcf.pos(genodata, geneFile, r, annoType)
+		} else {
 			Z <- c()
-#			if (test == 'famFLM') pos <- c()
 			for (anno in annoType) {
-				Z0 <- read.vcf(genodata, geneFile, reg, anno)
+				Z0 <- read.vcf(genodata, geneFile, r, anno)
 				if (is.null(Z0[[1]])) next
 				Z <- cbind(Z, t(Z0[[1]]))
 				if (test == 'famFLM') {
-					pos0 <- read.vcf.pos(genodata, geneFile, reg, anno)
+					pos0 <- read.vcf.pos(genodata, geneFile, r, anno)
 					pos <- c(pos, pos0)
 				}
 			}
 		}
 		if (is.null(Z)) return(list(m0 = 0, Z = NULL, w = NULL, pos = NULL))
-		if (!dim(Z)[2] == 0) Z <- as.matrix(Z[measured.ids, ])
+		if (!dim(Z)[2] == 0) Z <- as.matrix(Z[measured.ids, , drop = FALSE])
 		#if (weights.table) {
 		
 		#}
@@ -51,7 +53,7 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 	if (any(is.na(MAF))) {
 		if (all(is.na(MAF))) return(list(m0 = m0, Z = NULL, w = w, pos = pos))
 		index <- !is.na(MAF)
-		Z <- as.matrix(Z[, index])
+		Z <- as.matrix(Z[, index, drop = FALSE])
 		MAF <- MAF[index]
 		if (test == 'famFLM') pos <- as.vector(pos[index])
 		if (!is.null(weights)) w <- as.vector(w[index])
@@ -59,11 +61,13 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 
 	index <- sapply(1:dim(Z)[2], function(x) all(Z[, x] >= 0, na.rm = T) & all(Z[, x] <= 2, na.rm = T))
 	if (sum(index) == 0) return(list(m0 = m0, Z = 'not in range', w = NULL, pos = NULL))
-	Z <- as.matrix(Z[, index])
+	Z <- as.matrix(Z[, index, drop = FALSE])
 	MAF <- MAF[index]
+	if (test == 'famFLM') pos <- as.vector(pos[index])
+	if (!is.null(weights)) w <- as.vector(w[index])
 
-	if (any(MAF > .5) & test %in% c('famBT', 'famSKAT')) {
-		if (flip.genotypes) {
+	if (any(MAF > .5) & test %in% c('famBT', 'famSKAT', 'MLR')) {
+		if (flip.genotypes | test == 'MLR') {
 			v <- MAF > .5
 			Z[, v] <- abs(2 - Z[, v])
 			MAF[v] <- 1 - MAF[v]
@@ -72,14 +76,12 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 
 	if (mode != 'add') {
 		Z <- round(Z)
-		if (test == 'famFLM') pos <- as.vector(pos[index])
-		if (!is.null(weights)) w <- as.vector(w[index])
 		if (mode == 'rec') Z[Z == 1] <- 0
 		Z[Z == 2] <- 1
 	}
 
 	v <- sapply(1:dim(Z)[2], function(x) var(Z[, x], na.rm = TRUE))
-	Z <- as.matrix(Z[, v > 0])
+	Z <- as.matrix(Z[, v > 0, drop = FALSE])
 	if (test == 'famFLM') pos <- pos[v > 0]
 	if (!is.null(weights)) { w <- w[v > 0]
 	} else if (!is.null(fweights)) {
@@ -129,9 +131,6 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 		# detect and eliminate linear-dependent genetic variants
 		dqr <- qr(Z) # QR-decomposition
 		index <- dqr$pivot[1:dqr$rank] # indexes of dependent genetic variants
-#	} else {
-#		index <- !duplicated(Z, MARGIN = 2)
-#	}
 		Z <- as.matrix(Z[, index]) # elimination
 		if (test == 'famFLM') pos <- as.vector(pos[index])
 		if (!is.null(w)) w <- as.vector(w[index])
@@ -141,7 +140,6 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 	}
 
 	if (test == 'famFLM') {
-#		pos <- as.vector(pos[index])
 		if (any(is.na(pos))) {
 			pos <- NULL
 		} else {
@@ -160,29 +158,31 @@ genotypes <- function() {#(r, reg, genodata, mode, weights, fweights, beta.par, 
 		}
 	if (flip.genotypes & dim(Z)[2] > 1) Z <- flipper(Z)
 	}
-	#return(list(beta.par = beta.par, fweights = fweights, w = w,maf=MAF))
 	return(list(m0 = m0, Z = Z, w = w, pos = pos))
 }
 
 flipper <- function(Z) {
 	for (j in 1:(dim(Z)[2] - 1)) {
-		A <- sum(abs(Z[, j] - Z[, j + 1]))
-		B <- sum(abs(Z[, j] - (2 - Z[, j + 1])))
-		if (A > B) Z[, j + 1] <- 2 - Z[, j + 1] 
+		A_B <- mean((Z[,j+1]-1)*(Z[,j]-1))
+		if (A_B < 0) { 
+		Z[, j+1] <- (2 - Z[, j + 1])
+		}
 	}
 	return(Z)
 }
 
-read.vcf <- function(genodata, geneFile, reg, annoType) {
+
+
+read.vcf <- function(genodata, geneFile, r, annoType) {
 	if (getRversion() >= "3.2.0") {
-		invisible(capture.output(invisible(capture.output(Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, reg, annoType), type = 'output')), type = 'message'))
-	} else { Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, reg, annoType) }
+		invisible(capture.output(invisible(capture.output(Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, r, annoType), type = 'output')), type = 'message'))
+	} else { Z <- seqminer::readVCFToMatrixByGene(genodata, geneFile, r, annoType) }
 	return(Z)
 }
 
-read.vcf.pos <- function(genodata, geneFile, reg, annoType) {
+read.vcf.pos <- function(genodata, geneFile, r, annoType) {
 	if (getRversion() >= "3.2.0") {
-		invisible(capture.output(invisible(capture.output(pos <- seqminer::readVCFToListByGene(genodata, geneFile, reg, annoType, 'POS', '', '')$POS, type = 'output')),  type = 'message'))
-	} else { pos <- seqminer::readVCFToListByGene(genodata, geneFile, reg, annoType, 'POS', '', '')$POS }
+		invisible(capture.output(invisible(capture.output(pos <- seqminer::readVCFToListByGene(genodata, geneFile, r, annoType, 'POS', '', '')$POS, type = 'output')),  type = 'message'))
+	} else { pos <- seqminer::readVCFToListByGene(genodata, geneFile, r, annoType, 'POS', '', '')$POS }
 	return(pos)
 }

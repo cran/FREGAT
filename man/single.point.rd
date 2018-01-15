@@ -7,7 +7,7 @@ A single-point association test for familial or population data
 \usage{
 single.point(formula, phenodata, genodata, kin = NULL, nullmod,
 regions = NULL, mode = "add", ncores = 1, return.time = FALSE,
-impute.method = 'mean', ...)
+impute.method = 'mean', write.file = FALSE, ...)
 }
 
 \arguments{
@@ -54,6 +54,9 @@ impute.method = 'mean', ...)
 	the best linear unbiased estimates (BLUEs) of mean genotypes will be calculated
 	taking into account the relationships between individuals [McPeek, et al., 2004,
 	DOI: 10.1111/j.0006-341X.2004.00180.x] and used for imputation.}
+
+	\item{write.file}{output file name. If specified, output (as it proceeds) will be written 
+	to the file.}
 
 	\item{...}{other arguments that could be passed to \code{null()} and \code{read.plink()}.}
 }

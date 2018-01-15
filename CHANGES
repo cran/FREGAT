@@ -7,3 +7,6 @@ Version: 1.0.3
 	- FLM tests implemented for VCF files
 	- 'write to file' option added
 	- residuals from the null model now tested for normality
+Version: 1.1.0
+	- PCA function added
+	- single point analysis now works VCF files

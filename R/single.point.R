@@ -1,7 +1,7 @@
 # FREGAT (c) 2016 Gulnara R. Svishcheva & Nadezhda M. Belonogova, ICG SB RAS
 
 'single.point' <- function (formula, phenodata, genodata, kin = NULL, nullmod, regions = NULL,
-mode = 'add', ncores = 1, return.time = FALSE, impute.method = 'mean', ...) { #, na.action = 'impute'
+mode = 'add', ncores = 1, return.time = FALSE, impute.method = 'mean', write.file = FALSE, ...) { #, na.action = 'impute'
 
 t0 <- proc.time()
 
@@ -26,7 +26,7 @@ if (class(genodata) %in% c('gwaa.data', 'snp.data')) {
 		gtype <- 1
 	} else { stop(paste("'genodata' class '", class(genodata),"' cannot be processed, 'GenABEL' package not found",sep='')) }
 } else if (class(genodata) == 'character' & length(genodata) == 1) {
-	if (grepl('vcf', genodata)) stop("VCF not yet supported for single point analysis")
+	#if (grepl('vcf', genodata)) stop("VCF not yet supported for single point analysis")
 	tmp <- check.geno(genodata, regions, n, ...)
 	for (i in 1:length(tmp)) assign(names(tmp)[i], tmp[[i]])
 } else if (class(genodata) == 'snpMatrix') {
@@ -55,51 +55,58 @@ if (n1 != n) {
 	if (H2est) kin <- kin[measured.ids, measured.ids]
 }
 
-if (gtype == 2) {
-	snvnames <- snvnames
-} else {
+if (gtype < 2) {
 	snvnames <- colnames(genodata)
 	if (is.null(snvnames)) snvnames <- paste('snv', 1:k, sep = '')
 }
 
-if (!is.null(regions)) {
-	regions <- as.matrix(regions)
-	rtype <- dim(regions)[2]
-	if (rtype == 1) {
-		if (length(regions) != k) {
-			warning("Dimensions of 'regions' and 'genodata' do not match, 'regions' ignored")
-			regions <- NULL
+if (gtype < 3) {
+	if (!is.null(regions)) {
+		regions <- as.matrix(regions)
+		rtype <- dim(regions)[2]
+		if (rtype == 1) {
+			if (length(regions) != k) {
+				warning("Dimensions of 'regions' and 'genodata' do not match, 'regions' ignored")
+				regions <- NULL
+			}
+		} else {
+			if (rtype > 2) {
+				warning("'regions' with more than two columns, only the first two will be used")
+				regions <- regions[,1:2]
+				rtype <- 2
+			}
+			snvnames.out <- unique(regions[, 1])
+			if (is.null(snvnames)) stop("snv names not found in 'genodata'")
+			v <- snvnames.out %in% snvnames
+			k <- sum(v)
+			if (k == 0) stop("No variants from 'regions' found in 'genodata'")
+			if (length(snvnames.out) > k) warning(length(snvnames.out) - k, " variant(s) from 'regions' not found in 'genodata'")
+			snvnames.out <- snvnames.out[v]
+			sq <- match(snvnames.out, snvnames)
+	#		if (gtype < 2) {
+	#			genodata <- genodata[, colnames(genodata) %in% snvnames.out]
+	#			gc()
+	#			k <- dim(genodata)[2]
+	#		}
 		}
-	} else {
-		if (rtype > 2) {
-			warning("'regions' with more than two columns, only the first two will be used")
-			regions <- regions[,1:2]
-			rtype <- 2
-		}
-		snvnames.out <- unique(regions[, 1])
-		if (is.null(snvnames)) stop("snv names not found in 'genodata'")
-		v <- snvnames.out %in% snvnames
-		k <- sum(v)
-		if (k == 0) stop("No variants from 'regions' found in 'genodata'")
-		if (length(snvnames.out) > k) warning(length(snvnames.out) - k, " variant(s) from 'regions' not found in 'genodata'")
-		snvnames.out <- snvnames.out[v]
-		sq <- match(snvnames.out, snvnames)
-#		if (gtype < 2) {
-#			genodata <- genodata[, colnames(genodata) %in% snvnames.out]
-#			gc()
-#			k <- dim(genodata)[2]
-#		}
 	}
-}
-if (is.null(regions)) {
-	regions <- rep('none', k)
-	rtype <- 1
-}
-if (rtype == 1) {
-	snvnames.out <- snvnames
-	sq <- 1:k
-}
 
+	if (is.null(regions)) {
+		regions <- rep('none', k)
+		rtype <- 1
+	}
+	if (rtype == 1) {
+		snvnames.out <- snvnames
+		sq <- 1:k
+	}
+} else {
+	if (is.null(regions)) stop ("'regions' should be set when using VCF file")
+	regions <- as.matrix(regions)
+	tmp <- check.regions(k, regions)
+	for (i in 1:length(tmp)) assign(names(tmp)[i], tmp[[i]])
+	k <- nreg
+
+}
 ncores <- check.cores(ncores, k)
 
 ############# NULL MODEL
@@ -141,19 +148,56 @@ if (H2est) {
 t00 <- proc.time()
 
 environment(analyze.single) <- environment()
+environment(pval.single) <- environment()
+if (gtype == 3) {
+	environment(genotypes) <- environment()
+	test <- 'single'
+	omit.linear.dependent <- FALSE
+}
 
 if (ncores == 1) {
+	
+	if (write.file != FALSE) write.table(t(c('region', 'snv', 'n', 'pvalue', 'beta', 'se.beta', 'AF')), file = write.file, col.names = F, row.names = F, quote = F)
+	if (gtype == 3) {
+		
+		out <- matrix(NA, 0, 7)
+		
+		for (i in 1:nreg) {
+			r <- as.character(l[i])
+			Z <- genotypes()$Z
+			if (is.null(Z)) {
+				warning("No polymorphic variants in region ", r, ", skipped")
+			} else if (length(Z) == 1) {
+				if (Z == 'not in range') warning("Genotypes are not in range 0..2 in region ", r, ", skipped")
+			} else {
+				Z <- as.matrix(Z)
+				for (i in 1:dim(Z)[2]) {
+					Zi <- Z[, i]
+					tmp <- c(r, colnames(Z)[i], sum(!is.na(Zi)), pval.single(Zi), mean(Zi, na.rm = T) / 2)
+					if (write.file != FALSE) write.table(t(tmp), file = write.file, append = T, col.names = F, row.names = F, quote = F)
+					out <- rbind(out, tmp)
+				}
+			}
+		}
+		
+		out <- as.data.frame(out, stringsAsFactors = FALSE)
+		out[, 3:7] <- sapply(3:7, function(x) as.numeric(out[, x]))
+		colnames(out) <- c('region', 'snv', 'n', 'pvalue', 'beta', 'se.beta', 'AF')
+	
+	} else {
+	
+		out <- data.frame(snv = snvnames.out, n = NA, pvalue = NA, beta = NA, se.beta = NA, AF = NA)
 
-	out <- data.frame(snv = snvnames.out, n = NA, pvalue = NA, beta = NA, se.beta = NA, MAF = NA)
+		for (i in 1:k) {
+			r <- snvnames.out[i]
+	#		shd be: snvnames.out[i] == snvnames[s]
+			s <- sq[i]
+			out[i, 2:6] <- analyze.single(s)
+		}
 
-	for (i in 1:k) {
-		r <- snvnames.out[i]
-#		shd be: snvnames.out[i] == snvnames[s]
-		s <- sq[i]
-		out[i, 2:6] <- analyze.single(s)
 	}
 
-} else {
+} else { # gtype=3?
 
 	nj <- floor(k / ncores)
 	vj <- rep(nj, ncores)
@@ -164,33 +208,68 @@ if (ncores == 1) {
 	doParallel::registerDoParallel(cl)
 	clusterExport(cl, varlist = ls(), envir = environment())
 
-	out <- foreach::'%dopar%'(foreach::foreach(j = 1:ncores, .combine = rbind, .inorder = F), {
+	if (gtype == 3) {
 
-#		if (class(genodata) == 'snp.data') requireNamespace("GenABEL", quietly = TRUE)
+		environment(read.vcf) <- environment()
+		out <- foreach::'%dopar%'(foreach::foreach(j = 1:ncores, .combine = rbind, .inorder = F), {
 
-		i0 <- (sum(vj[1:(j - 1)]) * (j > 1) + 1)
-		out <- c()
+			i0 <- (sum(vj[1:(j - 1)]) * (j > 1) + 1)
+			out <- c()
 
-		for (i in i0:(i0 + vj[j] - 1)) {
-			r <- snvnames.out[i]
-			s <- sq[i]
-			out <- rbind(out, c(r, analyze.single(s)))
-		}
-		out
-	})
+			for (i in i0:(i0 + vj[j] - 1)) {
+				r <- as.character(l[i])
+				Z <- genotypes()$Z
+				if (!is.null(Z)) {
+					if (length(Z) > 1) {
+						Z <- as.matrix(Z)
+						for (i in 1:dim(Z)[2]) {
+							Zi <- Z[, i]
+							tmp <- c(r, colnames(Z)[i], sum(!is.na(Zi)), pval.single(Zi), mean(Zi, na.rm = T) / 2)
+							out <- rbind(out, tmp)
+						}
+					}
+				}
+			}
+			out
+		})
 
-	stopCluster(cl)
+		stopCluster(cl)
 
-	out <- as.data.frame(out)
-	out[, 2:6] <- sapply(2:6, function(x) as.numeric(as.character(out[, x])))
-	colnames(out) <- c('snv', 'n', 'pvalue', 'beta', 'se.beta', 'MAF')
+		out <- as.data.frame(out, stringsAsFactors = FALSE)
+		out[, 3:7] <- sapply(3:7, function(x) as.numeric(as.character(out[, x])))
+		colnames(out) <- c('region', 'snv', 'n', 'pvalue', 'beta', 'se.beta', 'AF')
 
+	} else {
+
+		out <- foreach::'%dopar%'(foreach::foreach(j = 1:ncores, .combine = rbind, .inorder = F), {
+
+	#		if (class(genodata) == 'snp.data') requireNamespace("GenABEL", quietly = TRUE)
+
+			i0 <- (sum(vj[1:(j - 1)]) * (j > 1) + 1)
+			out <- c()
+
+			for (i in i0:(i0 + vj[j] - 1)) {
+				r <- snvnames.out[i]
+				s <- sq[i]
+				out <- rbind(out, c(r, analyze.single(s)))
+			}
+			out
+		})
+
+		stopCluster(cl)
+
+		out <- as.data.frame(out)
+		out[, 2:6] <- sapply(2:6, function(x) as.numeric(as.character(out[, x])))
+		colnames(out) <- c('snv', 'n', 'pvalue', 'beta', 'se.beta', 'AF')
+	}
 }
 
-if (rtype == 1) {
-	out <- cbind(reg = as.character(regions), out)
-} else {
-	out <- cbind(reg = as.character(regions[, 2]), snv = as.character(regions[, 1]), out[match(regions[, 1], out[, 1]), 2:6])
+if (gtype < 3) {
+	if (rtype == 1) {
+		out <- cbind(region = as.character(regions), out)
+	} else {
+		out <- cbind(region = as.character(regions[, 2]), snv = as.character(regions[, 1]), out[match(regions[, 1], out[, 1]), 2:6])
+	}
 }
 rownames(out) <- NULL
 

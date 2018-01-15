@@ -1,8 +1,8 @@
 \name{FFBSKAT}
 \alias{FFBSKAT}
-\title{Fast Family-Based SKAT}
+\title{Fast Family-Based SKAT, SKAT-O}
 \description{
-A fast regional association analysis in related or population  samples
+A fast kernel-based regional association analysis in related or population samples
 }
 \usage{
 FFBSKAT(formula, phenodata, genodata, kin = NULL, nullmod,
@@ -97,8 +97,9 @@ rho = FALSE, write.file = FALSE, ...)
 	taking into account the relationships between individuals [McPeek, et al., 2004,
 	DOI: 10.1111/j.0006-341X.2004.00180.x] and used for imputation.}
 
-	\item{rho}{If TRUE the optimal test is used [Lee, et al., 2012]. \code{rho} can be a vector of grid
-	values from 0 to 1. The default grid is (0 : 10) / 10.}
+	\item{rho}{If TRUE the "optimal" test (SKAT-O) is performed [Lee, et al., 2012]. \code{rho} can be a vector of grid
+	values from 0 to 1. The default grid is (0 : 10) / 10, can be set to c(0, 0.1^2, 0.2^2, 0.3^2, 0.4^2, 0.5^2, 0.5, 1)
+	to perform "optimal.adj" test.}
 
 	\item{write.file}{output file name to write results as they come (sequential mode only).}
 
@@ -107,9 +108,10 @@ rho = FALSE, write.file = FALSE, ...)
 }
 \details{
 	By default, FFBSKAT uses the linear weighted kernel function to set the inter-individual
-	similarity matrix \eqn{K = GWWG^T}, where \eqn{\mathit{G}} is the \eqn{\mathit{n\times p}}
+	similarity matrix \eqn{K = GWWG^T} for SKAT and \eqn{K = GW(I\rho + (1 - \rho)ee^T)WG^T} for SKAT-O, where \eqn{\mathit{G}} is the \eqn{\mathit{n\times p}}
 	genotype matrix for \eqn{\mathit{n}} individuals and \eqn{\mathit{p}} genetic variants in the region, 
-	and \eqn{\mathit{W}} is the \eqn{\mathit{p\times p}} diagonal weight matrix. Given the shape parameters
+	\eqn{\mathit{W}} is the \eqn{\mathit{p\times p}} diagonal weight matrix, \eqn{I} is the \eqn{\mathit{p\times p}} identity matrix, \eqn{\rho} is pairwise correlation
+	coefficient between genetic effects (which will be adaptively selected from given \code{rho}), and \eqn{e} is the \eqn{\mathit{p\times 1}} vector of ones. Given the shape parameters
 	of the beta function, \code{beta.par = c(a, b)}, 
 	the weights are defined using probability density function of the beta distribution:\cr
 	\cr

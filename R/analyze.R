@@ -1,4 +1,4 @@
-# FREGAT (c) 2016 Gulnara R. Svishcheva & Nadezhda M. Belonogova, ICG SB RAS
+# FREGAT (c) 2017 Gulnara R. Svishcheva & Nadezhda M. Belonogova, ICG SB RAS
 
 analyze.region <- function() {
 
@@ -10,6 +10,7 @@ analyze.region <- function() {
 	}
 	if (length(Z$Z) == 1) {
 		if (Z$Z == 'not in range') warning("Genotypes are not in range 0..2 in region ", r, ", skipped")
+		if (Z$Z == 'not found') warning("Cannot locate region ", r, ", skipped")
 		return(c(r, m0, NA, rep(NA, lgt - 3)))
 	}
 	m1 <- dim(Z$Z)[2]
@@ -17,12 +18,13 @@ analyze.region <- function() {
 		warning("Some positions are not assigned in region ", r, ", skipped")
 		return(c(r, m0, m1, rep(NA, lgt - 3)))
 	}
-	if (test == 'famSKAT' & rho) {
-		if (qr(Z$Z)$rank > 1) return(c(r, m0, m1, pval.famSKATO(Z)))
+	if (test == 'famSKAT') {
+		if (rho & qr(Z$Z)$rank > 1) return(c(r, m0, m1, pval.famSKATO(Z)))
 	}
 	return(c(r, m0, m1, pval.region(Z)))
 
 }
+
 
 analyze.single <- function(snv) {
 
@@ -34,6 +36,21 @@ analyze.single <- function(snv) {
 		Z <- read.plink.region(bed, snvnames, idnames, snv)
 		Z <- subset.SnpMatrix(Z, measured.ids)
 		Z <- SnpMatrix2numeric(Z)
+	} else if (gtype == 3) {
+		if (length(annoType) == 1) {
+			Z <- read.vcf.single(genodata, geneFile, reg, annoType)
+			if (is.null(Z[[1]])) return(list(m0 = 0, Z = NULL, w = NULL, pos = NULL))
+			Z <- t(Z[[1]])
+		} else { 
+			Z <- c()
+			for (anno in annoType) {
+				Z0 <- read.vcf.single(genodata, geneFile, reg, anno)
+				if (is.null(Z0[[1]])) next
+				Z <- cbind(Z, t(Z0[[1]]))
+			}
+		}
+		if (is.null(Z)) return(list(m0 = 0, Z = NULL, w = NULL, pos = NULL))
+		if (!dim(Z)[2] == 0) Z <- as.matrix(Z[measured.ids, ])
 	}
 
 	n11 <- sum(!is.na(Z))
@@ -87,13 +104,6 @@ analyze.single <- function(snv) {
 		return(c(n11, NA, NA, NA, 0))
 	}
 
-	Z <- P11CholInvCor %*% Z
-
-	se.beta0 <- 1 / sum(Z * Z)
-	se.beta <- se.beta0 * nullmod$total.var
-	est.beta <- sum(Z * as.vector(pheno)) * se.beta0
-	chi2 <- (est.beta ^ 2) / se.beta
-	p <- pchisq(chi2, 1, lower.tail = F)
-	return(c(n11, p, est.beta, sqrt(se.beta), MAF))
+	return(c(n11, pval.single(Z), MAF))
 }
 

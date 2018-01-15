@@ -4,7 +4,6 @@ check.ini <- function(formula, phenodata, kin) {
 
 	if (missing(formula)) stop("'formula' is missing, with no default")
 	if (missing(phenodata)) stop("'phenodata' is missing, with no default")
-#	if (missing(kin)) stop("'kin' is missing, with no default")
 
 	H2est <- ifelse (!is.null(kin), TRUE, FALSE)
 
@@ -14,12 +13,8 @@ check.ini <- function(formula, phenodata, kin) {
 	if (H2est) {
 		if (dim(kin)[1] != dim(kin)[2] | dim(kin)[1] != n) stop("Dimensions of 'kin' and 'phenodata' do not match")
 	}
-#return(class(formula))
-#browser()
 	if (is(try(as.formula(formula), silent = TRUE), "try-error")) {
-#return(as.character(eval(formula)))
 		formula <- phenodata[, as.character(formula)]
-#		formula <- eval(formula,as.data.frame(phenodata))
 	} else {
 		if (!is(try(as.formula(formula), silent = TRUE), "try-error")) { formula <- as.formula(formula) }
 	}
@@ -40,14 +35,14 @@ check.geno <- function(genodata, regions, n, ...) {
 			if (getRversion() >= "3.2.0") {
 				invisible(capture.output(vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2], type = 'output'))
 			} else { vcfn <- dim(seqminer::readVCFToMatrixByRange(genodata, '1:0-0', '')[[1]])[2] }
-			if (vcfn != n) stop("Dimensions of 'phenodata' and 'genodata' do not match")
-#			annoType <- ifelse('annoType' %in% names(match.call()), eval(match.call()$annoType), '')
+			if (!is.na(n)) {
+				if (vcfn != n) stop("Dimensions of 'phenodata' and 'genodata' do not match")
+			}
 			if ('annoType' %in% names(match.call())) {
 				annoType <- eval(match.call()$annoType)
 			} else {
 				annoType <- ''
 			}
-
 			return(list(gtype = 3, geneFile = geneFile, annoType = annoType))
 		} else { stop(paste("Please install 'seqminer' package to process VCF file", sep = '')) }
 	} else {
@@ -97,7 +92,6 @@ check.regions <- function(k, regions, sliding.window) {#, snvnames) {
 				rtype <- 2
 			}
 			l <- unique(regions[, 2])
-#			if (is.null(snvnames)) stop("colnames not found in 'genodata'")
 		}
 		nreg <- length(l)
 		return(list(l = l, nreg = nreg, rtype = rtype))
@@ -113,10 +107,9 @@ check.regions <- function(k, regions, sliding.window) {#, snvnames) {
 	}
 }
 
-check.weights <- function(weights, k, beta.par) {
+check.weights <- function(weights, k, beta.par, gtype) {
 	if (is.null(weights)) {
 		if (beta.par[1] <= 0 | beta.par[2] <= 0) stop("beta.par should be > 0")
-#		fweights <- function(maf, beta.par) ifelse(maf > 0, dbeta(maf, beta.par[1], beta.par[2]), 0)
 		fweights <- function(maf, a = as.numeric(beta.par[1]), b = as.numeric(beta.par[2])) ifelse(maf > 0, dbeta(maf, a, b), 0)
 	} else {
 		if (is.function(weights)) {
@@ -135,16 +128,13 @@ check.covariates <- function(n, formula, phenodata) {
 		if (is(try(covariates <- as.matrix(model.frame(formula, phenodata)), silent = TRUE), "try-error")) stop("Check whether all covariates are given in 'phenodata'")
 		X <- as.matrix(model.frame(formula, phenodata, na.action = NULL, drop.unused.levels = TRUE))
 		measured.ids <- sapply(1:n, function(x) !any(is.na(X[x,])))
-#	return(list(X = model.matrix(formula, phenodata, na.action = NULL, drop.unused.levels = TRUE), measured.ids = measured.ids))
 		X <- cbind(as.numeric(X[as.logical(measured.ids), 1]), model.matrix(formula, phenodata, na.action = NULL, drop.unused.levels = TRUE))
-#	return(list(X = X, measured.ids = measured.ids))
 	} else {
 		X <- as.matrix(formula)#;return(X)
 		measured.ids <- !is.na(X)
 		X <- as.matrix(cbind(X, 1))
 		colnames(X)[2] <- '(Intercept)'
 		X <- X[as.logical(measured.ids), ]
-#	return(list(X = X, measured.ids = measured.ids))
 	}
 	return(list(X = X, measured.ids = measured.ids))
 }

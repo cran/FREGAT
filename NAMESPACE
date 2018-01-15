@@ -6,7 +6,7 @@ import(parallel)
 
 importFrom("methods", "as", "is")
 importFrom("stats", "anova", "as.formula", "dbeta", "dchisq", "glm",
-             "integrate", "kernel", "knots", "model.frame",
+             "integrate", "kernel", "knots", "model.frame", "pf", "sd",
              "model.matrix", "nlminb", "optim", "optimize", "pchisq",
              "pnorm", "qchisq", "uniroot", "var", "weights", "shapiro.test")
 importFrom("utils", "capture.output", "read.table", "write.table")
@@ -15,6 +15,7 @@ export(FFBSKAT)
 export(famBT)
 export(famFLM)
 export(MLR)
+export(PCA)
 export(single.point)
 export(read.plink)
 export(null)

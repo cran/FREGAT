@@ -35,6 +35,14 @@ stat = 'F', flip.genotypes = FALSE, impute.method = 'mean', write.file = FALSE, 
 
 }
 
+'PCA' <- function (formula, phenodata, genodata, kin = NULL, nullmod, regions = NULL,
+sliding.window = c(20, 10), mode = 'add', ncores = 1, return.time = FALSE, beta.par = c(1, 1),
+weights = NULL, var.fraction = .85, impute.method = 'mean', write.file = FALSE, ...) {
+
+	do.call(do.regional, c(make.call(match.call()), test = 'PCA'), envir = parent.frame())
+
+}
+
 make.call <- function (cl) {
 	cl <- cl0 <- as.list(cl)[-1L]
 	names(cl) <- match.arg(names(cl0), names(formals(do.regional)), several.ok = TRUE)
@@ -47,4 +55,7 @@ if (getRversion() >= "2.15.1") utils::globalVariables(c('r', 'lgt', 'test', 'rho
 'n', 'geneFile', 'annoType', 'rtype', 'nreg', 'l', 'j', 'gtype', 'reg', 'measured.ids', 'flip.genotypes', 'fweights',
 'H2est', 'model0', 'g', 'kg0', 'genobasis0', 'J0', 'GVF', 'order0', 'kb0', 'betabasis0', 'BSF', 'stat', 'SIG_res',
 'SPS', 'CholSigmaiP11', 'method', 'acc', 'lim', 'return.variance.explained', 'reml', 'X0', 'kin', 'y', 'SIGMA',
-'rhos', 'sliding.window', 'P11CholInvCor', 'omit.linear.dependent', 'CholInvCo', 'impute.method', 'colInvOmega'))
+'rhos', 'sliding.window', 'P11CholInvCor', 'omit.linear.dependent', 'CholInvCo', 'impute.method', 'colInvOmega',
+'%^%', 'n.pca', 'read.vcf.single', 'var.fraction', 'yc'))
+
+
